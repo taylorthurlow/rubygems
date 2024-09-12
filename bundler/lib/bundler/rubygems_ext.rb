@@ -144,6 +144,10 @@ module Gem
       end
     end
 
+    def insecurely_materialized?
+      false
+    end
+
     def groups
       @groups ||= []
     end
