@@ -129,8 +129,8 @@ module Bundler
       end
       if search.nil? && fallback_to_non_installable
         search = candidates.last
-      else
-        search.dependencies = dependencies if search && (search.is_a?(RemoteSpecification) || search.is_a?(EndpointSpecification))
+      elsif search && (search.is_a?(RemoteSpecification) || search.is_a?(EndpointSpecification))
+        search.dependencies = dependencies
       end
       search
     end
