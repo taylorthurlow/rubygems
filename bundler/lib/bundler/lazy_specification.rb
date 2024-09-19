@@ -165,9 +165,7 @@ module Bundler
     # explicitly add a more specific platform.
     #
     def ruby_platform_materializes_to_ruby_platform?
-      generic_platform = generic_local_platform == Gem::Platform::JAVA ? Gem::Platform::JAVA : Gem::Platform::RUBY
-
-      !Bundler.most_specific_locked_platform?(generic_platform) || force_ruby_platform || Bundler.settings[:force_ruby_platform]
+      !Bundler.most_specific_locked_platform?(Gem::Platform::RUBY) || force_ruby_platform || Bundler.settings[:force_ruby_platform]
     end
   end
 end

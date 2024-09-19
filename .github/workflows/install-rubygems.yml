@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - master
+      - deivid-rodriguez/remind-me-something
 
 concurrency:
   group: ci-${{ github.ref }}-${{ github.workflow }}
