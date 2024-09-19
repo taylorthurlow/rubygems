@@ -92,16 +92,16 @@ module Bundler
       out
     end
 
-    def materialize_for_installation
+    def materialize_for_installation(most_specific_locked_platform = nil)
       source.local!
 
-      matching_specs = source.specs.search(use_exact_resolved_specifications? ? self : [name, version])
+      matching_specs = source.specs.search(use_exact_resolved_specifications?(most_specific_locked_platform) ? self : [name, version])
       return self if matching_specs.empty?
 
-      candidates = if use_exact_resolved_specifications?
+      candidates = if use_exact_resolved_specifications?(most_specific_locked_platform)
         matching_specs
       else
-        target_platform = ruby_platform_materializes_to_ruby_platform? ? platform : local_platform
+        target_platform = ruby_platform_materializes_to_ruby_platform?(most_specific_locked_platform) ? platform : local_platform
 
         installable_candidates = GemHelpers.select_best_platform_match(matching_specs, target_platform)
 
@@ -150,8 +150,8 @@ module Bundler
 
     private
 
-    def use_exact_resolved_specifications?
-      @use_exact_resolved_specifications ||= !source.is_a?(Source::Path) && ruby_platform_materializes_to_ruby_platform?
+    def use_exact_resolved_specifications?(most_specific_locked_platform)
+      !source.is_a?(Source::Path) && ruby_platform_materializes_to_ruby_platform?(most_specific_locked_platform)
     end
 
     #
@@ -163,8 +163,8 @@ module Bundler
     # on newer bundlers unless users generate the lockfile from scratch or
     # explicitly add a more specific platform.
     #
-    def ruby_platform_materializes_to_ruby_platform?
-      !Bundler.most_specific_locked_platform?(Gem::Platform::RUBY) || force_ruby_platform || Bundler.settings[:force_ruby_platform]
+    def ruby_platform_materializes_to_ruby_platform?(most_specific_locked_platform)
+      (most_specific_locked_platform != Gem::Platform::RUBY) || force_ruby_platform || Bundler.settings[:force_ruby_platform]
     end
   end
 end

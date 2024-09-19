@@ -202,7 +202,7 @@ module Bundler
     end
 
     def missing_specs
-      resolve.materialize(requested_dependencies).missing_specs
+      resolve.materialize(requested_dependencies, most_specific_locked_platform).missing_specs
     end
 
     def missing_specs?
@@ -585,7 +585,7 @@ module Bundler
     end
 
     def materialize(dependencies)
-      specs = resolve.materialize(dependencies)
+      specs = resolve.materialize(dependencies, most_specific_locked_platform)
       missing_specs = specs.missing_specs
 
       if missing_specs.any?
@@ -613,7 +613,7 @@ module Bundler
         sources.remote!
         resolution_packages.delete(incomplete_specs)
         @resolve = start_resolution
-        specs = resolve.materialize(dependencies)
+        specs = resolve.materialize(dependencies, most_specific_locked_platform)
 
         still_incomplete_specs = specs.incomplete_specs
 
