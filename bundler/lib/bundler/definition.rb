@@ -231,7 +231,7 @@ module Bundler
     end
 
     def current_dependencies
-      filter_relevant(dependencies)
+      filter_relevant(dependencies_with_bundler)
     end
 
     def current_locked_dependencies
@@ -280,17 +280,17 @@ module Bundler
     def resolve
       @resolve ||= if Bundler.frozen_bundle?
         Bundler.ui.debug "Frozen, using resolution from the lockfile"
-        @locked_specs
+        locked_specs_with_bundler
       elsif no_resolve_needed?
         if deleted_deps.any?
           Bundler.ui.debug "Some dependencies were deleted, using a subset of the resolution from the lockfile"
-          SpecSet.new(filter_specs(@locked_specs, @dependencies - deleted_deps))
+          SpecSet.new(filter_specs(locked_specs_with_bundler, dependencies_with_bundler - deleted_deps))
         else
           Bundler.ui.debug "Found no changes, using resolution from the lockfile"
           if @removed_platform || @locked_gems.may_include_redundant_platform_specific_gems?
-            SpecSet.new(filter_specs(@locked_specs, @dependencies))
+            SpecSet.new(filter_specs(locked_specs_with_bundler, dependencies_with_bundler))
           else
-            @locked_specs
+            locked_specs_with_bundler
           end
         end
       else
@@ -309,7 +309,7 @@ module Bundler
     end
 
     def groups
-      dependencies.map(&:groups).flatten.uniq
+      dependencies_with_bundler.map(&:groups).flatten.uniq
     end
 
     def lock(file_or_preserve_unknown_sections = false, preserve_unknown_sections_or_unused = false)
@@ -501,6 +501,14 @@ module Bundler
 
     private
 
+    def locked_specs_with_bundler
+      @locked_specs_with_bundler ||= SpecSet.new(@locked_gems.specs + [bundler_spec])
+    end
+
+    def bundler_spec
+      LazySpecification.new("bundler", Bundler.gem_version, Gem::Platform::RUBY, bundler_source)
+    end
+
     def should_add_extra_platforms?
       !lockfile_exists? && generic_local_platform_is_ruby? && !Bundler.settings[:force_ruby_platform]
     end
@@ -552,10 +560,9 @@ module Bundler
     end
 
     def dependencies_with_bundler
-      return dependencies unless @unlocking_bundler
       return dependencies if dependencies.any? {|d| d.name == "bundler" }
 
-      [Dependency.new("bundler", @unlocking_bundler)] + dependencies
+      [Dependency.new("bundler", @unlocking_bundler || Bundler::VERSION, { "implicit" => true })] + dependencies
     end
 
     def resolution_base
@@ -614,9 +621,6 @@ module Bundler
         incomplete_specs = still_incomplete_specs
       end
 
-      bundler = sources.metadata_source.specs.search(["bundler", Bundler.gem_version]).last
-      specs["bundler"] = bundler
-
       specs
     end
 
@@ -639,7 +643,7 @@ module Bundler
 
       @platforms = result.add_extra_platforms!(platforms) if should_add_extra_platforms?
 
-      SpecSet.new(result.for(dependencies, false, @platforms))
+      SpecSet.new(result.for(dependencies_with_bundler, false, @platforms))
     end
 
     def precompute_source_requirements_for_indirect_dependencies?
@@ -970,7 +974,7 @@ module Bundler
         source_requirements[dep.name] = sources.metadata_source
       end
 
-      default_bundler_source = source_requirements["bundler"] || default_source
+      default_bundler_source = source_requirements["bundler"] || sources.global_rubygems_source
 
       if @unlocking_bundler
         default_bundler_source.add_dependency_names("bundler")
@@ -984,6 +988,10 @@ module Bundler
 
     def default_source
       sources.default_source
+    end
+
+    def bundler_source
+      source_map.direct_requirements["bundler"] || sources.global_rubygems_source
     end
 
     def verify_changed_sources!
@@ -1053,7 +1061,7 @@ module Bundler
                 @path_changes ||
                 @dependency_changes ||
                 @locked_spec_with_invalid_deps ||
-                !spec_set_incomplete_for_platform?(@originally_locked_specs, platform)
+                !spec_set_incomplete_for_platform?(locked_specs_with_bundler, platform)
 
         remove_platform(platform)
       end
