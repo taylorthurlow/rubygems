@@ -129,7 +129,7 @@ module Bundler
       end
       if search.nil? && fallback_to_non_installable
         search = candidates.last
-      elsif search&.is_a?(RemoteSpecification)
+      elsif search&.is_a?(StubSpecification)
         search.dependencies = dependencies
       end
       search

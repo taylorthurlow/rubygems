@@ -1693,6 +1693,47 @@ RSpec.describe "the lockfile format" do
     G
   end
 
+  it "automatically fixes the lockfile when it's missing deps and the full index is in use" do
+    lockfile <<-L
+      GEM
+        remote: https://gem.repo2/
+        specs:
+          myrack_middleware (1.0)
+
+      PLATFORMS
+        #{lockfile_platforms}
+
+      DEPENDENCIES
+        myrack_middleware
+
+      BUNDLED WITH
+         #{Bundler::VERSION}
+    L
+
+    install_gemfile <<-G
+      source "#{file_uri_for(gem_repo2)}"
+      gem "myrack_middleware"
+    G
+
+    expect(lockfile).to eq <<~L
+      GEM
+        remote: #{file_uri_for(gem_repo2)}/
+        specs:
+          myrack (0.9.1)
+          myrack_middleware (1.0)
+            myrack (= 0.9.1)
+
+      PLATFORMS
+        #{lockfile_platforms}
+
+      DEPENDENCIES
+        myrack_middleware
+
+      BUNDLED WITH
+         #{Bundler::VERSION}
+    L
+  end
+
   shared_examples_for "a lockfile missing dependent specs" do
     it "auto-heals" do
       build_repo4 do
