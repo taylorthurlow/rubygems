@@ -129,8 +129,12 @@ module Bundler
       end
       if search.nil? && fallback_to_non_installable
         search = candidates.last
-      elsif search && (search.is_a?(RemoteSpecification) || search.instance_of?(EndpointSpecification))
-        search.dependencies = dependencies
+      elsif search
+        if search.is_a?(StubSpecification)
+          search.dependencies = dependencies
+        elsif !source.is_a?(Source::Path) && search.runtime_dependencies.sort != dependencies.sort
+          raise IncorrectLockfileDependencies.new(self)
+        end
       end
       search
     end
